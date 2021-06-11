@@ -1,0 +1,15 @@
+Heightmap:
+
+
+Biomes:
+#RRGGBB
+#0000ff - ocean
+#0088ff - lake
+#00ffff - river
+
+#000000 - mountain
+#004400 - taiga forest
+#008800 - swamp
+#00ff00 - decisious forest
+#88ff00 - grassland
+#ffff00 - desert
