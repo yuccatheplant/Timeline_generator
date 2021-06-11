@@ -39,7 +39,7 @@ BIOM_MOUNTAIN = (0, 0, 0) #000000 - mountain
 #008800 - swamp
 #00ff00 - decisious forest
 #88ff00 - grassland
-#ffff00 - desert
+BIOM_DESERT = (255, 255, 0)#ffff00 - desert
 
 LANDMARK_VOLCANO = (255, 0, 0) ##ff0000 Volcano
 
@@ -78,14 +78,24 @@ def write_image(image_path, width, height):
    
 #####################################################################################################################
 def clean_image(image_path):
+    html = open(OUTPUT_DIR+'/'+'bullshit'+HTML_FORMAT, 'w')
+    html.write('<html>\n<head>\n</head>\n<body>\n<img src="../map/biomes.png" usemap="#navmap">\n<map name="navmap">\n')
+
     image = Image.open(image_path)
     matrix = image.load()
     for i in range(image.size[0]):
         for j in range(image.size[1]):
+            cell_size = 10
+            if (i % cell_size == 0) and (j % cell_size == 0):
+                html.write('<area shape="rect" coords="'+str(i)+','+str(j)+','+str(i+cell_size-1)+','+str(j+cell_size-1)+'" alt="volcano1" href="bioms/biom_r'+str(matrix[i,j][0])+'g'+str(matrix[i,j][1])+'b'+str(matrix[i,j][2])+'.html">')
             if ((matrix[i,j] != BIOM_OCEAN) and (matrix[i,j] != BIOM_LAKE) and (matrix[i,j] != BIOM_RIVER)):
                 matrix[i,j] = VOID
+                
     image.save(image_path)
     image.close()
+    
+    html.write('</map>\n</body>\n</html>\n')
+    html.close()
     
 #####################################################################################################################
 def readChances(chances):
@@ -126,7 +136,7 @@ def generate_volcano(inputMatrix, image_path, chances):
     
     html = open(OUTPUT_DIR+'/'+LANDMARK_FILE_NAME+HTML_FORMAT, 'w')
     html.write('<html>\n<head>\n</head>\n<body>\n<img src="landmark_map.png" usemap="#navmap">\n<map name="navmap">\n')
-    
+
     count_mountain_pixels = 0
     for x in range(len(inputMatrix)-1):
         for y in range(len(inputMatrix[x])-1):
