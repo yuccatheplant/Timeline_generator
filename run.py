@@ -3,6 +3,17 @@ import numpy
 import os
 import shutil
 
+###CONSTANTS
+#DIRS
+INPUT_DIR = 'map'
+OUTPUT_DIR = 'results'
+
+#MAPS
+BIOMES_MAP_NAME = 'biomes.png'
+HEIGHT_MAP_NAME = 'heightmap.png'
+CLEAN_MAP_NAME = 'clean_map.png'
+
+#COLORS
 VOID = (255, 255, 255)
 
 BIOM_OCEAN = (0, 0, 255) #0000ff ocean
@@ -16,21 +27,25 @@ BIOM_RIVER = (0, 255, 255)#00ffff - river
 #88ff00 - grassland
 #ffff00 - desert
 
-
-
+#####################################################################################################################
+###FUNCTIONS
 def read_image(image_path):
     image = Image.open(image_path, "r")
+    matrix = image.load()
+    
     width, height = image.size
-    pixel_values = list(image.getdata())
-    if image.mode == "RGB":
-        channels = 3
-    elif image.mode == "L":
-        channels = 1
-    else:
-        print("Unknown mode: %s" % image.mode)
-        return None
-    pixel_values = numpy.array(pixel_values).reshape((width, height, channels))
-    return pixel_values
+    
+    myMatrix = []
+    for x in range(width):
+        myMatrixY = []
+        for y in range(height):
+            pixel = matrix[x, y]
+            myMatrixY.append(pixel)
+        myMatrix.append(myMatrixY)
+    
+    image.close()
+    return myMatrix
+
 #####################################################################################################################
 def write_image(image_path, width, height):
     image = Image.new( mode = "RGB", size = (width, height))
@@ -50,13 +65,17 @@ def clean_image(image_path):
     
 
 #####################################################################################################################
+#MAIN#
+#####################################################################################################################
 
-shutil.copy('map/biomes.png', 'results/experiment.png')
+#Create empty copy of the map
+shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME, OUTPUT_DIR+'/'+CLEAN_MAP_NAME)
+clean_image(OUTPUT_DIR+'/'+CLEAN_MAP_NAME)
 
-clean_image('results/experiment.png')
+#Load Biom and Height info into arrays
+biomesMatrix = read_image(INPUT_DIR+'/'+BIOMES_MAP_NAME)
+heightMatrix = read_image(INPUT_DIR+'/'+HEIGHT_MAP_NAME)
 
-
-###
-
+print(biomesMatrix)
 
 #####################################################################################################################
