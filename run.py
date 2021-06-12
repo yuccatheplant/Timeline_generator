@@ -15,6 +15,10 @@ VOLCANO_SPAWN_CHANCE = [[1, 1], [0.25, 2]] #ONE, TWO
 INPUT_DIR = 'map'
 OUTPUT_DIR = 'results'
 
+MAPS_DIR = 'maps'
+HTML_DIR = 'html'
+TEXTS_DIR = 'texts'
+
 #FORMATS
 PICTURE_FORMAT = '.png'
 TEXTFILE_FORMAT = '.txt'
@@ -28,20 +32,20 @@ CLEAN_MAP_NAME = 'clean_map'
 LANDMARK_FILE_NAME = 'landmark_map'
 
 #COLORS
-VOID = (255, 255, 255)
+VOID = (255, 255, 255, 255)
 
-BIOM_OCEAN = (0, 0, 255) #0000ff ocean
-BIOM_LAKE = (0, 136, 255) #0088ff - lake
-BIOM_RIVER = (0, 255, 255) #00ffff - river
+BIOM_OCEAN = (0, 0, 255, 255) #0000ff ocean
+BIOM_LAKE = (0, 136, 255, 255) #0088ff - lake
+BIOM_RIVER = (0, 255, 255, 255) #00ffff - river
 
-BIOM_MOUNTAIN = (0, 0, 0) #000000 - mountain
+BIOM_MOUNTAIN = (0, 0, 0, 255) #000000 - mountain
 #004400 - taiga forest
 #008800 - swamp
 #00ff00 - decisious forest
 #88ff00 - grassland
-BIOM_DESERT = (255, 255, 0)#ffff00 - desert
+BIOM_DESERT = (255, 255, 0, 255)#ffff00 - desert
 
-LANDMARK_VOLCANO = (255, 0, 0) ##ff0000 Volcano
+LANDMARK_VOLCANO = (255, 0, 0, 255) ##ff0000 Volcano
 
 #####################################################################################################################
 ###FUNCTIONS
@@ -78,18 +82,20 @@ def write_image(image_path, width, height):
    
 #####################################################################################################################
 def clean_image(image_path):
-    html = open(OUTPUT_DIR+'/'+'clickable_biomes'+HTML_FORMAT, 'w')
-    html.write('<html>\n<head>\n</head>\n<body>\n<img src="'+BIOMES_MAP_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
-
+    html = open(OUTPUT_DIR+'/'+HTML_DIR+'/'+'clickable_biomes'+HTML_FORMAT, 'w')
+    html.write('<html>\n<head>\n</head>\n<body>\n<img src="../'+MAPS_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
 
     image = Image.open(image_path)
     matrix = image.load()
+    
+    print(matrix[50,50] == BIOM_OCEAN)
+    print(BIOM_OCEAN)
     for i in range(image.size[0]):
         for j in range(image.size[1]):
             cell_size = 10
             if (i % cell_size == 0) and (j % cell_size == 0):
                 html.write('<area shape="rect" coords="'+str(i)+','+str(j)+','+str(i+cell_size-1)+','+str(j+cell_size-1)+'" alt="volcano1" href="bioms/biom_r'+str(matrix[i,j][0])+'g'+str(matrix[i,j][1])+'b'+str(matrix[i,j][2])+'.html">')
-            if ((matrix[i,j] != BIOM_OCEAN) and (matrix[i,j] != BIOM_LAKE) and (matrix[i,j] != BIOM_RIVER)):
+            if ((matrix[i, j] != BIOM_OCEAN) and (matrix[i, j] != BIOM_LAKE) and (matrix[i, j] != BIOM_RIVER)):
                 matrix[i,j] = VOID
                 
     image.save(image_path)
@@ -110,6 +116,32 @@ def readChances(chances):
     
     return result
     
+#####################################################################################################################
+def generateLandmarkHTMLs(inputPath):
+    textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'r')
+    textlines = textfile.readlines()
+    textfile.close()
+    
+    html = open(OUTPUT_DIR+'/'+HTML_DIR+'/'+LANDMARK_FILE_NAME+HTML_FORMAT, 'w')
+    html.write('<html>\n<head>\n</head>\n<body>\n<img src="../'+MAPS_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
+
+    for line in textlines:
+        if not '#' in line:
+            x=int(line.split(";")[0].split('[')[1])
+            y=int(line.split(";")[1].split(']')[0])
+            if 'VOLCANO' in line:
+                coords = getVolcanoRect(x, y)
+                html.write('<area shape="rect" coords="'+str(coords[0][0])+','+str(coords[0][1])+','+str(coords[1][0])+','+str(coords[1][1])+'" href="'+line.split('[')[0]+'.html">')
+            if 'RIVER' in line:
+                offset = 2
+                html.write('<area shape="rect" coords="'+str(x-offset)+','+str(y-offset)+','+str(x+offset)+','+str(y+offset)+'" href="'+line.split('[')[0]+'.html">')
+    html.write('</map>\n</body>\n</html>\n')
+    html.close()
+
+#####################################################################################################################
+def getVolcanoRect(x, y):
+    return [[x-math.floor(PIXELS_PER_KILOMETER), y-math.floor(PIXELS_PER_KILOMETER)],[x+math.ceil(PIXELS_PER_KILOMETER/2), y+math.ceil(PIXELS_PER_KILOMETER/2)]]
+
 #####################################################################################################################
 def generate_volcano(inputMatrix, image_path, chances):
     chance = random.random()
@@ -135,40 +167,60 @@ def generate_volcano(inputMatrix, image_path, chances):
     image = Image.open(image_path)
     matrix = image.load()
     
-    html = open(OUTPUT_DIR+'/'+LANDMARK_FILE_NAME+HTML_FORMAT, 'w')
-    html.write('<html>\n<head>\n</head>\n<body>\n<img src="'+LANDMARK_FILE_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
-
+    textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'w')
+    textfile.write('#NATURAL LANDMARKS#')
+    
+    
     count_mountain_pixels = 0
+    
+    count_rivers=0
+    count_volcanoes=0
     for x in range(len(inputMatrix)-1):
         for y in range(len(inputMatrix[x])-1):
+            if inputMatrix[x][y] == BIOM_RIVER:
+                count_river_blocks = 0
+                count_other_water_blocks = 0
+                for rx in range(x-1, x+2):
+                    for ry in range(y-1, y+2):
+                        if (inputMatrix[rx][ry] == BIOM_OCEAN or inputMatrix[rx][ry] == BIOM_LAKE):
+                            count_other_water_blocks=count_other_water_blocks+1
+                        if (inputMatrix[rx][ry] == BIOM_RIVER):
+                            count_river_blocks = count_river_blocks+1
+                if count_river_blocks == 2 and count_other_water_blocks == 0:
+                    count_rivers = count_rivers+1
+                    textfile.write('\nRIVER'+str(count_rivers)+'['+str(x)+';'+str(y)+']')   
             if inputMatrix[x][y] == BIOM_MOUNTAIN: 
                 if count_mountain_pixels in volcanoPos:
-                    print('['+str(x)+' ; '+str(y)+']')
-                    coords = [[x-math.floor(PIXELS_PER_KILOMETER), y-math.floor(PIXELS_PER_KILOMETER)],[x+math.ceil(PIXELS_PER_KILOMETER/2), y+math.ceil(PIXELS_PER_KILOMETER/2)]]
-                    html.write('<area shape="rect" coords="'+str(coords[0][0])+','+str(coords[0][1])+','+str(coords[1][0])+','+str(coords[1][1])+'" alt="volcano1" href="volcano.html">')
-                    for i in range(coords[0][0], coords[1][0]):
-                        for j in range(coords[0][1], coords[1][1]):
+                    count_volcanoes = count_volcanoes+1
+                    textfile.write('\nVOLCANO'+str(count_volcanoes)+'['+str(x)+';'+str(y)+']')
+                    coords = getVolcanoRect(x,y)
+                    for i in range(coords[0][0], coords[1][0]+1):
+                        for j in range(coords[0][1], coords[1][1]+1):
                             matrix[i,j] = LANDMARK_VOLCANO
-                        
-                    
+
                 count_mountain_pixels=count_mountain_pixels+1
-    html.write('</map>\n</body>\n</html>\n')
-    html.close()
+
+    
+    textfile.close()
     
     image.save(image_path)
     image.close()
+    
+    generateLandmarkHTMLs(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT)
 
 #####################################################################################################################
 #MAIN#
 #####################################################################################################################
 #Create result directory
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR+'/'+MAPS_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR+'/'+HTML_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR+'/'+TEXTS_DIR, exist_ok=True)
 
 #Create empty copy of the map
-shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT)
-shutil.copy(INPUT_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT)
-shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
-clean_image(OUTPUT_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
+shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+MAPS_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT)
+shutil.copy(INPUT_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+MAPS_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT)
+shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+MAPS_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
+clean_image(OUTPUT_DIR+'/'+MAPS_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
 
 #Load Biom and Height info into arrays
 biomesMatrix = read_image(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT)
@@ -177,8 +229,8 @@ size = getImageSize(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT)
 
 #print(biomesMatrix)
 
-shutil.copy(OUTPUT_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT)
+shutil.copy(OUTPUT_DIR+'/'+MAPS_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+MAPS_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT)
 
-generate_volcano(biomesMatrix, OUTPUT_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT, VOLCANO_SPAWN_CHANCE)
+generate_volcano(biomesMatrix, OUTPUT_DIR+'/'+MAPS_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT, VOLCANO_SPAWN_CHANCE)
 
 #####################################################################################################################
