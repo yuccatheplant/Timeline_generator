@@ -78,8 +78,9 @@ def write_image(image_path, width, height):
    
 #####################################################################################################################
 def clean_image(image_path):
-    html = open(OUTPUT_DIR+'/'+'bullshit'+HTML_FORMAT, 'w')
-    html.write('<html>\n<head>\n</head>\n<body>\n<img src="../map/biomes.png" usemap="#navmap">\n<map name="navmap">\n')
+    html = open(OUTPUT_DIR+'/'+'clickable_biomes'+HTML_FORMAT, 'w')
+    html.write('<html>\n<head>\n</head>\n<body>\n<img src="'+BIOMES_MAP_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
+
 
     image = Image.open(image_path)
     matrix = image.load()
@@ -135,7 +136,7 @@ def generate_volcano(inputMatrix, image_path, chances):
     matrix = image.load()
     
     html = open(OUTPUT_DIR+'/'+LANDMARK_FILE_NAME+HTML_FORMAT, 'w')
-    html.write('<html>\n<head>\n</head>\n<body>\n<img src="landmark_map.png" usemap="#navmap">\n<map name="navmap">\n')
+    html.write('<html>\n<head>\n</head>\n<body>\n<img src="'+LANDMARK_FILE_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
 
     count_mountain_pixels = 0
     for x in range(len(inputMatrix)-1):
@@ -160,8 +161,12 @@ def generate_volcano(inputMatrix, image_path, chances):
 #####################################################################################################################
 #MAIN#
 #####################################################################################################################
+#Create result directory
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 #Create empty copy of the map
+shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT)
+shutil.copy(INPUT_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+HEIGHT_MAP_NAME+PICTURE_FORMAT)
 shutil.copy(INPUT_DIR+'/'+BIOMES_MAP_NAME+PICTURE_FORMAT, OUTPUT_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
 clean_image(OUTPUT_DIR+'/'+CLEAN_MAP_NAME+PICTURE_FORMAT)
 
