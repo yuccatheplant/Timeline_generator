@@ -87,15 +87,13 @@ def clean_image(image_path):
 
     image = Image.open(image_path)
     matrix = image.load()
-    
-    print(matrix[50,50] == BIOM_OCEAN)
-    print(BIOM_OCEAN)
+
     for i in range(image.size[0]):
         for j in range(image.size[1]):
             cell_size = 10
             if (i % cell_size == 0) and (j % cell_size == 0):
                 html.write('<area shape="rect" coords="'+str(i)+','+str(j)+','+str(i+cell_size-1)+','+str(j+cell_size-1)+'" alt="volcano1" href="bioms/biom_r'+str(matrix[i,j][0])+'g'+str(matrix[i,j][1])+'b'+str(matrix[i,j][2])+'.html">')
-            if ((matrix[i, j] != BIOM_OCEAN) and (matrix[i, j] != BIOM_LAKE) and (matrix[i, j] != BIOM_RIVER)):
+            if ((matrix[i, j] != BIOM_OCEAN) and (matrix[i, j] != BIOM_LAKE) and (matrix[i, j] != BIOM_RIVER) and (matrix[i, j] != BIOM_MOUNTAIN)):
                 matrix[i,j] = VOID
                 
     image.save(image_path)
@@ -143,6 +141,43 @@ def getVolcanoRect(x, y):
     return [[x-math.floor(PIXELS_PER_KILOMETER), y-math.floor(PIXELS_PER_KILOMETER)],[x+math.ceil(PIXELS_PER_KILOMETER/2), y+math.ceil(PIXELS_PER_KILOMETER/2)]]
 
 #####################################################################################################################
+def detectMountains(matrix, mountainPixels):
+    mountains = []
+    mountainsLen = 0
+    
+    while True:
+        mountains.append([])
+        mountainsLen = mountainsLen+1
+        color = (255, 255, 255-mountainsLen, 255)
+        coord = mountainPixels[0]
+        matrix[coord[0], coord[1]] = color
+        while True:
+            jumpOut=True
+            
+            for coords in mountainPixels:
+                #print(coords)
+                if ((matrix[coords[0]-1, coords[1]] == color) or (matrix[coords[0]+1, coords[1]] == color) or (matrix[coords[0], coords[1]-1] == color) or (matrix[coords[0], coords[1]+1] == color)):
+                    #print('test')
+                    mountains[mountainsLen-1].append(coords)
+                    matrix[coords[0], coords[1]] = color
+                    mountainPixels.remove(coords)
+                    jumpOut=False
+            if jumpOut:
+                break
+        
+        for coords in mountains[mountainsLen-1]:
+            matrix[coords[0]-1, coords[1]] = BIOM_MOUNTAIN
+        
+        #
+        
+        if len(mountainPixels) == 0:
+            break
+    #print (mountains)   
+    return mountains
+    
+def coordsDistancePerpendicular(coord1, coord2):
+    return max(abs(coord1[0]-coord2[0]), abs(coord1[1]-coord2[1]))
+    
 def generate_volcano(inputMatrix, image_path, chances):
     chance = random.random()
     toGenerate = readChances(chances)
@@ -170,13 +205,15 @@ def generate_volcano(inputMatrix, image_path, chances):
     textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'w')
     textfile.write('#NATURAL LANDMARKS#')
     
+    mountainPixels = []
+    volcanoCoords = []
     
     count_mountain_pixels = 0
     
     count_rivers=0
     count_volcanoes=0
-    for x in range(len(inputMatrix)-1):
-        for y in range(len(inputMatrix[x])-1):
+    for x in range(len(inputMatrix)):
+        for y in range(len(inputMatrix[x])):
             if inputMatrix[x][y] == BIOM_RIVER:
                 count_river_blocks = 0
                 count_other_water_blocks = 0
@@ -190,16 +227,23 @@ def generate_volcano(inputMatrix, image_path, chances):
                     count_rivers = count_rivers+1
                     textfile.write('\nRIVER'+str(count_rivers)+'['+str(x)+';'+str(y)+']')   
             if inputMatrix[x][y] == BIOM_MOUNTAIN: 
+                mountainPixels.append([x,y])
                 if count_mountain_pixels in volcanoPos:
                     count_volcanoes = count_volcanoes+1
                     textfile.write('\nVOLCANO'+str(count_volcanoes)+'['+str(x)+';'+str(y)+']')
-                    coords = getVolcanoRect(x,y)
-                    for i in range(coords[0][0], coords[1][0]+1):
-                        for j in range(coords[0][1], coords[1][1]+1):
-                            matrix[i,j] = LANDMARK_VOLCANO
-
+                    volcanoCoords.append([x, y])
                 count_mountain_pixels=count_mountain_pixels+1
-
+    width, height = image.size
+    
+    mountains = detectMountains(matrix, mountainPixels)
+    textfile.write('\n#'+str(mountains))
+    
+    for coords in volcanoCoords:
+        coords = getVolcanoRect(coords[0],coords[1])
+        for i in range(coords[0][0], coords[1][0]+1):
+            for j in range(coords[0][1], coords[1][1]+1):
+                matrix[i,j] = LANDMARK_VOLCANO
+    
     
     textfile.close()
     
