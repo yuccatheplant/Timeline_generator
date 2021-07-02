@@ -1,4 +1,3 @@
-import requests
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
@@ -33,11 +32,31 @@ def getVolcanoNames(number):
             result.append(html[i])
         
     return result
+#===========================================================================================================================================================================
+def getRiverName():
+    river = getRiverNames(1)
+    return river[0]
+
+def getRiverNames(number):
+    count = 0
+    url = "https://www.fantasynamegenerators.com/river-names.php"
+    
+    result = []
+    while(count < number):
+        html = scrapeUrlSelenium(url)
+        count = count + 10
+        html = html.split('<div id="result">')[1]
+        html = html.split('</div>')[0]
+        html = html.split('<br>')
+        for i in range(0, 10):
+            result.append(html[i])
+        
+    return result
     
   
     
-#print(getVolcanoNames(10))
-print(scrapeUrlRequests('https://www.fantasynamegenerators.com/volcano-names.php'))
+#print(getRiverNames(10))
+#print(getVolcanoName())
 
 
 
