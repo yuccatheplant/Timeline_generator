@@ -23,6 +23,7 @@ TEXTS_DIR = 'texts'
 RESOURCES_DIR = 'resources'
 RESOURCES_HTML_DIR = RESOURCES_DIR+'/html'
 RESOURCES_HTML_BIOMES_DIR = RESOURCES_HTML_DIR+'/biomes'
+RESOURCES_HTML_LANDMARKS_DIR = RESOURCES_HTML_DIR+'/landmarks'
 
 OUTPUT_DIR = 'results'
 OUTPUT_HTML_DIR = OUTPUT_DIR+'/html'
@@ -135,18 +136,51 @@ def generateLandmarkHTMLs(inputPath):
     html = open(OUTPUT_DIR+'/'+HTML_DIR+'/'+LANDMARK_FILE_NAME+HTML_FORMAT, 'w')
     html.write('<html>\n<head>\n<title>Natural landmarks</title>\n</head>\n<body>\n<a href="index.html"><<-BACK</a>\n<h1>Natural landmarks</h1>\n<img src="../'+MAPS_DIR+'/'+LANDMARK_FILE_NAME+PICTURE_FORMAT+'" usemap="#navmap">\n<map name="navmap">\n')
 
+    riverCount = 0
+    volcanoCount = 0
+
     for line in textlines:
         if not '#' in line:
             x=int(line.split(";")[0].split('[')[1])
             y=int(line.split(";")[1].split(']')[0])
             if 'VOLCANO' in line:
                 coords = getVolcanoRect(x, y)
-                html.write('<area shape="rect" coords="'+str(coords[0][0])+','+str(coords[0][1])+','+str(coords[1][0])+','+str(coords[1][1])+'" href="landmaks/volcanoes/'+line.split('[')[0]+'.html">')
+                html.write('<area shape="rect" coords="'+str(coords[0][0])+','+str(coords[0][1])+','+str(coords[1][0])+','+str(coords[1][1])+'" href="landmarks/volcanoes/'+line.split('[')[0]+'.html">')
+                
+                volcanoCount = volcanoCount+1
+                generateVolcanoHTML(volcanoCount, [x,y])
             if 'RIVER' in line:
                 offset = 2
                 html.write('<area shape="rect" coords="'+str(x-offset)+','+str(y-offset)+','+str(x+offset)+','+str(y+offset)+'" href="landmaks/rivers/'+line.split('[')[0]+'.html">')
+                
+                riverCount = riverCount+1
     html.write('</map>\n</body>\n</html>\n')
     html.close()
+        
+    
+def generateVolcanoHTML(number, coords):
+    template = open(RESOURCES_HTML_LANDMARKS_DIR+'/landmark_volcano_template.html', 'r')
+    templateString = template.read()
+    template.close()
+    
+    textfile = open(OUTPUT_HTML_LANDMARKS_VOLCANOES_DIR+'/VOLCANO'+str(number)+'.html', 'w')
+    templateArray = templateString.split('{coords}')
+    textfile.write(templateArray[0]+'Coords=['+str(coords[0])+';'+str(coords[1])+']')
+    
+    templateProcessedString = templateArray[1]
+    templateArray = templateProcessedString.split('{name}')
+    
+    volcanoName = routes.getVolcanoName()
+    
+    firstTime = True
+    
+    for line in templateArray:
+        if not firstTime:
+            textfile.write(volcanoName)
+        firstTime = False
+        textfile.write(line)
+    
+    textfile.close()
 
 #####################################################################################################################
 def getVolcanoRect(x, y):
@@ -267,7 +301,7 @@ def generate_volcano(inputMatrix, image_path, chances):
 #####################################################################################################################
 #MAIN#
 #####################################################################################################################
-random.seed(10)
+#random.seed(10)
 
 #Create result directory
 os.makedirs(OUTPUT_DIR+'/'+MAPS_DIR, exist_ok=True)
