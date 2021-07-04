@@ -81,6 +81,23 @@ def count3x3Neighbours (matrix, size, coords, color):
                 
     return result
 #####################################################################################################################
+def detectMergePoints(matrix, size, mergePoints):
+    result = mergePoints
+    while True:
+        newAddition=False
+        
+        for mergePoint in mergePoints:
+            for x in range(mergePoint[0]-1, mergePoint[0]+2):
+                for y in range(mergePoint[1]-1, mergePoint[1]+2):
+                    if isInRange(size, [x,y]) and not [x,y] in mergePoints and matrix[x,y] == LANDMARK_RIVER_MERGE:
+                        mergePoints.append([x,y])
+                        newAddition = True
+        
+        if not newAddition:
+            break
+    return result
+
+#####################################################################################################################
 def detectRivers(matrix, size, inputRivers):
     print('DEBUG: START OF RIVERS')
     print(inputRivers)
@@ -93,8 +110,6 @@ def detectRivers(matrix, size, inputRivers):
     for mergePoint in mergeCoords:
         matrix[mergePoint[0], mergePoint[1]] = LANDMARK_RIVER_MERGE
     
-    
-    
     rivers = []
     riverID = 0
     for inputRiver in inputRivers:
@@ -106,34 +121,96 @@ def detectRivers(matrix, size, inputRivers):
             "name": riverName,
             "startCoords": inputRiver,
             "coords": riverCoords,
-            "length": 1,
-            "currentMerge": []
+            "length": 1
             }
         rivers.append(river)
+        
+    controlCounter = 0
+    
     while True:
         for river in rivers:
-            print(river)
-            firstTime = True
-            while True:
-                currentCell = river['coords'][len(river['coords'])-1]
-                neighbours = count3x3Neighbours(matrix, size, currentCell, BIOM_RIVER)
-                didWrite = False
-                if len(neighbours) >= 2 or firstTime:
-                    firstTime=False
-                    #go downstream
-                    for neigbour in neighbours:
-                        formattedNeighbour = [neigbour[0], neigbour[1], currentCell[2]]
-                        if not formattedNeighbour in river['coords']:
-                            river['coords'].append(formattedNeighbour)
-                            river['length'] = river['length']+1
-                else:
-                    if len(count3x3Neighbours(matrix, size, currentCell, LANDMARK_RIVER_MERGE)) != 0:
-                        print("TODO MERGE POINT FOR RIVER "+str(river['id']))
-                    else:
-                        river['endCoord'] = [currentCell[0], currentCell[1]]
-                    break
-            #print(river)
-        break
+            firstBigger = True
+            if not 'endCoord' in river:
+                #print('JSEM TADY')
+                #print(river)
+                if 'mergePoints' in river:
+                    #print('JSEM TADY TAKY')
+                    for river2 in rivers:
+                        if river['id'] != river2['id']:
+                            if not 'endCoord' in river2 and 'mergePoints' in river2:
+                                if river['mergePoints'][0] in river2['mergePoints']:
+                                    
+                                    num1 = river['coords'][len(river['coords'])-1][2]
+                                    num2 = river2['coords'][len(river2['coords'])-1][2]
+                                    firstBigger = num1 > num2
+                                    if num1 == num2:
+                                        firstBigger = river['length'] > river2['length']
+                                    if not firstBigger:
+                                        riverSwap = river
+                                        river = river2
+                                        river2 = riverSwap
+                                    
+                                    lastCoord = river2['coords'][len(river2['coords'])-1]
+                                    river2['endCoord'] = [lastCoord[0], lastCoord[1]]
+                                    river2['mergeInto'] = [river['id'], river['name']]
+                                    
+                                    oldWidth = river['coords'][len(river2['coords'])-1][2]
+                                    newWidth = oldWidth+lastCoord[2]
+                                    river['coords'].append(lastCoord)
+                                        
+                                    continuePoint = []
+                                        
+                                    for mergePoint in river['mergePoints']:
+                                        matrix[mergePoint[0], mergePoint[1]] = BIOM_RIVER
+                                        river['coords'].append([mergePoint[0], mergePoint[1], newWidth])
+                                        for neigbour in count3x3Neighbours(matrix, size, mergePoint, BIOM_RIVER):
+                                            formattedneigbour = [neigbour[0], neigbour[1], oldWidth]
+                                            if not formattedneigbour in river['coords']:
+                                                continuePoint = [neigbour[0], neigbour[1], newWidth]
+                                    
+                                    if continuePoint == []:
+                                        river['endCoord'] = river['coords'][len(river['coords'])-1]
+                                    del river['mergePoints']
+                                    del river2['mergePoints']
+                                    
+                                    if not firstBigger:
+                                        riverSwap = river
+                                        river = river2
+                                        river2 = riverSwap
+                                    
+                                    
+                                break
+                                     
+                                        
+                                        
+                if firstBigger and not 'endCoord' in river:
+                    #print(river)
+                    firstTime = True
+                    while True:
+                        currentCell = river['coords'][len(river['coords'])-1]
+                        neighbours = count3x3Neighbours(matrix, size, currentCell, BIOM_RIVER)
+                        didWrite = False
+                        if len(neighbours) >= 2 or firstTime:
+                            firstTime=False
+                            #go downstream
+                            for neigbour in neighbours:
+                                formattedNeighbour = [neigbour[0], neigbour[1], currentCell[2]]
+                                if not formattedNeighbour in river['coords']:
+                                    river['coords'].append(formattedNeighbour)
+                                    river['length'] = river['length']+1
+                        else:
+                            mergePoints = count3x3Neighbours(matrix, size, currentCell, LANDMARK_RIVER_MERGE)
+                            if len(mergePoints) > 0:
+                                river['mergePoints'] = detectMergePoints(matrix, size, mergePoints)
+                            else:
+                                river['endCoord'] = [currentCell[0], currentCell[1]]
+                            break
+                    print(river)
+                    print('')
+                    
+        controlCounter = controlCounter + 1
+        if controlCounter > 50:
+            break
     
     print('DEBUG: END OF RIVERS')
     
