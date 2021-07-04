@@ -4,6 +4,7 @@ from readchances import readChances
 from PIL import Image
 import math 
 import routes
+import json
 
 def generateLandmarkHTMLs(inputPath):
     textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'r')
@@ -32,7 +33,7 @@ def generateLandmarkHTMLs(inputPath):
                 
                 riverCount = riverCount+1
     html.write('</map>\n</body>\n</html>\n')
-    html.close(),
+    html.close()
         
     
 def generateVolcanoHTML(number, coords):
@@ -62,6 +63,40 @@ def generateVolcanoHTML(number, coords):
 #####################################################################################################################
 def getVolcanoRect(x, y):
     return [[x-math.floor(PIXELS_PER_KILOMETER), y-math.floor(PIXELS_PER_KILOMETER)],[x+math.ceil(PIXELS_PER_KILOMETER/2), y+math.ceil(PIXELS_PER_KILOMETER/2)]]
+
+
+#####################################################################################################################
+
+def detectRivers(matrix, inputRivers):
+    print('DEBUG: START OF RIVERS')
+    print(inputRivers)
+    
+    rivers = []
+    
+    for inputRiver in inputRivers:
+        riverName = routes.getGeneratedName(GENERATOR_RIVER_NAME_PATH)
+        riverCoords = [[inputRiver[0], inputRiver[1], 1]]
+        river = {
+            "name": riverName,
+            "startCoords": inputRiver,
+            "coords": riverCoords
+            }
+        rivers.append(river)
+    
+    while True:
+        for river in rivers:
+            print(river)
+            
+            print(river)
+            print('')
+        break
+    
+    
+    print('DEBUG: END OF RIVERS')
+    
+    
+    
+    
 
 #####################################################################################################################
 def detectMountains(matrix, mountainPixels):
@@ -130,6 +165,7 @@ def generate_landmarks(inputMatrix, image_path, chances):
     
     mountainPixels = []
     volcanoCoords = []
+    rivers = []
     
     count_mountain_pixels = 0
     
@@ -149,6 +185,7 @@ def generate_landmarks(inputMatrix, image_path, chances):
                 if count_river_blocks == 2 and count_other_water_blocks == 0:
                     count_rivers = count_rivers+1
                     textfile.write('\nRIVER'+str(count_rivers)+'['+str(x)+';'+str(y)+']')   
+                    rivers.append([x,y])
             if inputMatrix[x][y] == BIOM_MOUNTAIN: 
                 mountainPixels.append([x,y])
                 if count_mountain_pixels in volcanoPos:
@@ -159,6 +196,8 @@ def generate_landmarks(inputMatrix, image_path, chances):
     width, height = image.size
     
     mountains = detectMountains(matrix, mountainPixels)
+    detectRivers(matrix, rivers)
+    
     textfile.write('\n#'+str(mountains))
     
     for coords in volcanoCoords:

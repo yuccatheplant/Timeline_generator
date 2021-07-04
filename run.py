@@ -3,7 +3,6 @@ import sys
 import os
 import shutil
 import random
-import routes
 import json
 import landmarks
 
@@ -76,6 +75,7 @@ def clean_image(image_path):
 random.seed(5)
 
 #Clean result directory
+print ('Cleaning result directories')
 try:
     shutil.rmtree(OUTPUT_DIR)
 except FileNotFoundError:
