@@ -24,6 +24,9 @@ RESOURCES_DIR = 'resources'
 RESOURCES_HTML_DIR = RESOURCES_DIR+'/html'
 RESOURCES_HTML_BIOMES_DIR = RESOURCES_HTML_DIR+'/biomes'
 RESOURCES_HTML_LANDMARKS_DIR = RESOURCES_HTML_DIR+'/landmarks'
+RESOURCES_GENERATORS_DIR = RESOURCES_DIR + '/generators'
+
+GENERATOR_VOLCANO_NAME_PATH = [RESOURCES_GENERATORS_DIR+'/volcano1.txt', RESOURCES_GENERATORS_DIR+'/volcano2.txt']
 
 OUTPUT_DIR = 'results'
 OUTPUT_HTML_DIR = OUTPUT_DIR+'/html'
@@ -170,7 +173,7 @@ def generateVolcanoHTML(number, coords):
     templateProcessedString = templateArray[1]
     templateArray = templateProcessedString.split('{name}')
     
-    volcanoName = routes.getVolcanoName()
+    volcanoName = routes.getGeneratedName(GENERATOR_VOLCANO_NAME_PATH)
     
     firstTime = True
     
@@ -301,7 +304,7 @@ def generate_volcano(inputMatrix, image_path, chances):
 #####################################################################################################################
 #MAIN#
 #####################################################################################################################
-#random.seed(10)
+random.seed(5)
 
 #Create result directory
 os.makedirs(OUTPUT_DIR+'/'+MAPS_DIR, exist_ok=True)
