@@ -67,30 +67,73 @@ def getVolcanoRect(x, y):
 
 #####################################################################################################################
 
-def detectRivers(matrix, inputRivers):
+def isInRange(size, coords):
+    return (coords[0] >= 0 and coords[0] < size[0] and coords[1] >=0 and coords[1] < size[1])
+
+def count3x3Neighbours (matrix, size, coords, color):
+    result = []
+    
+    for x in range(coords[0]-1, coords[0]+2):
+        for y in range(coords[1]-1, coords[1]+2):
+            if x!=coords[0] or y!=coords[1]:
+                if isInRange(size, [x,y]) and matrix[x,y] == color:
+                    result.append([x,y])
+                
+    return result
+#####################################################################################################################
+def detectRivers(matrix, size, inputRivers):
     print('DEBUG: START OF RIVERS')
     print(inputRivers)
     
-    rivers = []
+    mergeCoords = []
+    for x in range(size[0]):
+        for y in range(size[1]):
+            if matrix[x,y] == BIOM_RIVER and len(count3x3Neighbours(matrix, size, [x,y], BIOM_RIVER)) >= 3:
+                mergeCoords.append([x,y])
+    for mergePoint in mergeCoords:
+        matrix[mergePoint[0], mergePoint[1]] = LANDMARK_RIVER_MERGE
     
+    
+    
+    rivers = []
+    riverID = 0
     for inputRiver in inputRivers:
+        riverID = riverID+1
         riverName = routes.getGeneratedName(GENERATOR_RIVER_NAME_PATH)
         riverCoords = [[inputRiver[0], inputRiver[1], 1]]
         river = {
+            "id": riverID,
             "name": riverName,
             "startCoords": inputRiver,
-            "coords": riverCoords
+            "coords": riverCoords,
+            "length": 1,
+            "currentMerge": []
             }
         rivers.append(river)
-    
     while True:
         for river in rivers:
             print(river)
-            
-            print(river)
-            print('')
+            firstTime = True
+            while True:
+                currentCell = river['coords'][len(river['coords'])-1]
+                neighbours = count3x3Neighbours(matrix, size, currentCell, BIOM_RIVER)
+                didWrite = False
+                if len(neighbours) >= 2 or firstTime:
+                    firstTime=False
+                    #go downstream
+                    for neigbour in neighbours:
+                        formattedNeighbour = [neigbour[0], neigbour[1], currentCell[2]]
+                        if not formattedNeighbour in river['coords']:
+                            river['coords'].append(formattedNeighbour)
+                            river['length'] = river['length']+1
+                else:
+                    if len(count3x3Neighbours(matrix, size, currentCell, LANDMARK_RIVER_MERGE)) != 0:
+                        print("TODO MERGE POINT FOR RIVER "+str(river['id']))
+                    else:
+                        river['endCoord'] = [currentCell[0], currentCell[1]]
+                    break
+            #print(river)
         break
-    
     
     print('DEBUG: END OF RIVERS')
     
@@ -124,7 +167,8 @@ def detectMountains(matrix, mountainPixels):
                 break
         
         for coords in mountains[mountainsLen-1]:
-            matrix[coords[0]-1, coords[1]] = BIOM_MOUNTAIN
+            #matrix[coords[0]-1, coords[1]] = BIOM_MOUNTAIN
+            matrix[coords[0], coords[1]] = BIOM_MOUNTAIN
         
         #
         
@@ -196,7 +240,7 @@ def generate_landmarks(inputMatrix, image_path, chances):
     width, height = image.size
     
     mountains = detectMountains(matrix, mountainPixels)
-    detectRivers(matrix, rivers)
+    detectRivers(matrix, [width, height], rivers)
     
     textfile.write('\n#'+str(mountains))
     

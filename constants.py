@@ -59,3 +59,4 @@ BIOM_MOUNTAIN = (0, 0, 0, 255) #000000 - mountain
 BIOM_DESERT = (255, 255, 0, 255)#ffff00 - desert
 
 LANDMARK_VOLCANO = (255, 0, 0, 255) ##ff0000 Volcano
+LANDMARK_RIVER_MERGE = (255, 0, 0, 254) ##ff0000 Volcano
