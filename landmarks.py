@@ -128,12 +128,12 @@ def detectRivers(matrix, size, inputRivers):
     controlCounter = 0
     
     
-    
+    firstRun = True
     while True:
         controlCounter = controlCounter + 1
-        if controlCounter > 2:
+        if controlCounter > 20:
             break
-    
+        
         shouldStop = True
         for river in rivers:
             firstBigger = True
@@ -152,7 +152,7 @@ def detectRivers(matrix, size, inputRivers):
                     if river2Id > 0:
                         river1Id = river['id']
                         print('')
-                        print('Starting merge')
+                        
                         
                         bigRiver = river
                         smallRiver = rivers[river2Id-1]
@@ -166,7 +166,48 @@ def detectRivers(matrix, size, inputRivers):
                             bigRiver = smallRiver
                             smallRiver = swapRiver
                         
-                        #TODO Merge!
+                        print('Starting merge')
+                        
+                        smallRiver['endCoord'] = smallRiver['coords'][len(smallRiver['coords'])-1][0]
+                        del(smallRiver['mergePoints'])
+                        smallRiver['mergeInto'] = [bigRiver['id'], bigRiver['name'], bigRiver['length'], bigRiver['mergePoints'][0]]
+                        
+                        bigRiver['coords'].append(smallRiver['coords'][len(smallRiver['coords'])-1])
+                        
+                        newWidth = smallRiver['coords'][len(smallRiver['coords'])-1][1] + bigRiver['coords'][len(bigRiver['coords'])-1][1]
+
+                        mergeInfo = [smallRiver['id'], smallRiver['name'], bigRiver['length']+1, bigRiver['mergePoints'][0]]
+                        if not 'mergeInfo' in bigRiver:
+                            bigRiver['mergeInfo'] = [mergeInfo]
+                        else:
+                            bigRiver['mergeInfo'].append(mergeInfo)
+                        
+                        continuePoint = []
+                        
+                        for mergePoint in bigRiver['mergePoints']:
+                            bigRiver['coords'].append([mergePoint, newWidth])
+                            bigRiver['length'] = bigRiver['length'] + 1
+                            neigbours = count3x3Neighbours(matrix, size, mergePoint, BIOM_RIVER)
+                            for neigbour in neigbours:
+                                isFound = False
+                                for coord in bigRiver['coords']:
+                                    if coord[0] == neigbour:
+                                        isFound = True
+                                        break
+                                if not isFound:
+                                    continuePoint = [neigbour, newWidth]
+                        print(continuePoint)
+                        if len(continuePoint)==2:
+                            bigRiver['coords'].append(continuePoint)
+                        
+                        del(bigRiver['mergePoints'])
+
+                        print(bigRiver)
+                        print('')
+                        print(smallRiver)
+                        
+                        
+                        print('Finishing merge')
                         
                         #swap back
                         if not firstBigger:
@@ -177,7 +218,7 @@ def detectRivers(matrix, size, inputRivers):
                         rivers[river1Id-1] = bigRiver
                         rivers[river2Id-1] = smallRiver
 
-                        print('Finishing merge')
+                        
                     
                     print('')
                     
@@ -212,7 +253,11 @@ def detectRivers(matrix, size, inputRivers):
         print('Should we stop?')
         print(shouldStop)
         print('')
-            
+        
+        if not firstRun and shouldStop:
+            break
+        firstRun = False
+        
     print('DEBUG: END OF RIVERS')
     
     
