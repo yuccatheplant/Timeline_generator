@@ -29,7 +29,7 @@ def generateLandmarkHTMLs(inputPath):
                 generateVolcanoHTML(volcanoCount, [x,y])
             if 'RIVER' in line:
                 offset = 2
-                html.write('<area shape="rect" coords="'+str(x-offset)+','+str(y-offset)+','+str(x+offset)+','+str(y+offset)+'" href="landmaks/rivers/'+line.split('[')[0]+'.html">')
+                html.write('<area shape="rect" coords="'+str(x-offset)+','+str(y-offset)+','+str(x+offset)+','+str(y+offset)+'" href="landmarks/rivers/'+line.split('[')[0]+'.html">')
                 
                 riverCount = riverCount+1
     html.write('</map>\n</body>\n</html>\n')
@@ -140,25 +140,24 @@ def detectRivers(matrix, size, inputRivers):
             if not 'endCoord' in river:
                 
                 if 'mergePoints' in river:
-                    print('Merge points of river '+str(river['id'])+':\n'+str(river['mergePoints'])+'')
                     river2Id = -1
                     for river2 in rivers:
                         if not 'endCoord' in river2 and 'mergePoints' in river2 and river2['id'] != river['id'] and river2['mergePoints'][0] in river['mergePoints']:
-                            print('Rivers '+str(river['id']) + ' and '+str(river2['id']) + ' have same merge points!!!')
                             shouldStop = False
                             river2Id=river2['id']
                             break
                     
                     if river2Id > 0:
-                        river1Id = river['id']
-                        print('')
-                        
+                        river1Id = river['id']                        
                         
                         bigRiver = river
                         smallRiver = rivers[river2Id-1]
                         
-                        #TODO: figure out which river is bigger
-                        firstBigger = True
+                        #Figure out which river is bigger
+                        firstBigger = bigRiver['coords'][len(bigRiver['coords'])-1][1] > smallRiver['coords'][len(smallRiver['coords'])-1][1]
+                        if bigRiver['coords'][len(bigRiver['coords'])-1][1] == smallRiver['coords'][len(smallRiver['coords'])-1][1]:
+                            firstBigger = bigRiver['length'] > smallRiver['length']
+                
                         
                         #swap
                         if not firstBigger:
@@ -166,7 +165,7 @@ def detectRivers(matrix, size, inputRivers):
                             bigRiver = smallRiver
                             smallRiver = swapRiver
                         
-                        print('Starting merge')
+                        newWidth = smallRiver['coords'][len(smallRiver['coords'])-1][1] + bigRiver['coords'][len(bigRiver['coords'])-1][1]
                         
                         smallRiver['endCoord'] = smallRiver['coords'][len(smallRiver['coords'])-1][0]
                         del(smallRiver['mergePoints'])
@@ -174,8 +173,6 @@ def detectRivers(matrix, size, inputRivers):
                         
                         bigRiver['coords'].append(smallRiver['coords'][len(smallRiver['coords'])-1])
                         
-                        newWidth = smallRiver['coords'][len(smallRiver['coords'])-1][1] + bigRiver['coords'][len(bigRiver['coords'])-1][1]
-
                         mergeInfo = [smallRiver['id'], smallRiver['name'], bigRiver['length']+1, bigRiver['mergePoints'][0]]
                         if not 'mergeInfo' in bigRiver:
                             bigRiver['mergeInfo'] = [mergeInfo]
@@ -196,18 +193,9 @@ def detectRivers(matrix, size, inputRivers):
                                         break
                                 if not isFound:
                                     continuePoint = [neigbour, newWidth]
-                        print(continuePoint)
                         if len(continuePoint)==2:
                             bigRiver['coords'].append(continuePoint)
-                        
                         del(bigRiver['mergePoints'])
-
-                        print(bigRiver)
-                        print('')
-                        print(smallRiver)
-                        
-                        
-                        print('Finishing merge')
                         
                         #swap back
                         if not firstBigger:
@@ -217,10 +205,6 @@ def detectRivers(matrix, size, inputRivers):
 
                         rivers[river1Id-1] = bigRiver
                         rivers[river2Id-1] = smallRiver
-
-                        
-                    
-                    print('')
                     
                 if firstBigger and not 'endCoord' in river:
                     firstTime = True
@@ -246,23 +230,143 @@ def detectRivers(matrix, size, inputRivers):
                             if len(mergePoints) > 0:
                                 river['mergePoints'] = detectMergePoints(matrix, size, mergePoints)
                             else:
-                                river['endCoord'] = [currentCell[0], currentCell[1]]
+                                river['endCoord'] = currentCell[0]
                             break
-                    #print(river)
-                    #print('')
-        print('Should we stop?')
-        print(shouldStop)
-        print('')
+                            
+        if not firstRun and shouldStop:
+            for river in rivers:
+                if not 'endCoord' in river and 'mergePoints' in river:
+                    continuePoints = []
+                    for mergePoint in river['mergePoints']:
+                        river['coords'].append([mergePoint, river['coords'][len(river['coords'])-1][1]])
+                        river['length'] = river['length'] + 1
+                        neigbours = count3x3Neighbours(matrix, size, mergePoint, BIOM_RIVER)
+                        for neigbour in neigbours:
+                            isFound = False
+                            for coord in river['coords']:
+                                if coord[0] == neigbour:
+                                    isFound = True
+                                    break
+                            if not isFound:
+                                newWidth = river['coords'][len(river['coords'])-1][1]-1
+                                if newWidth < 1:
+                                    newWidth = 1
+                                continuePoints.append([neigbour, newWidth])
+                    river['coords'].append(continuePoints[random.randrange(0, len(continuePoints)-1)])
+                    shouldStop = False
         
         if not firstRun and shouldStop:
             break
         firstRun = False
-        
+    
+    
+    for river in rivers:
+        river['length'] = river['length'] // PIXELS_PER_KILOMETER
+    
+    colorRiversUp(matrix, size, rivers)
+    
+    generateRiversHTMLs(rivers)
+    
     print('DEBUG: END OF RIVERS')
+
+#####################################################################################################################
+def generateRiversHTMLs(rivers):
+    templateString = ''
+
+    with open(RESOURCES_HTML_LANDMARKS_DIR + '/landmark_river_template.html', 'r') as tempFile:
+        templateString = tempFile.read()
+
+    for river in rivers:
+        with open(OUTPUT_HTML_LANDMARKS_RIVERS_DIR + '/RIVER'+ str(river['id']) +'.html', 'w') as writeFile:
+            text = 'Length: ' + str(river['length'])+ 'km'
+            
+            data = [river, river['name'], river['name'], text]
+        
+            templateArray = templateString.split('{}')
+            indexPos = 0
+            for templateLine in templateArray:
+                writeFile.write(templateLine)
+                
+                if indexPos < len(data):
+                    writeFile.write(str(data[indexPos]))
+                indexPos = indexPos+1
+        
+        
+    return    
     
+    template = open(RESOURCES_HTML_LANDMARKS_DIR+'/landmark_volcano_template.html', 'r')
+    templateString = template.read()
+    template.close()
     
+    textfile = open(OUTPUT_HTML_LANDMARKS_VOLCANOES_DIR+'/VOLCANO'+str(number)+'.html', 'w')
+    templateArray = templateString.split('{coords}')
+    textfile.write(templateArray[0]+'Coords=['+str(coords[0])+';'+str(coords[1])+']')
     
+    templateProcessedString = templateArray[1]
+    templateArray = templateProcessedString.split('{name}')
     
+    volcanoName = routes.getGeneratedName(GENERATOR_VOLCANO_NAME_PATH)
+    
+    firstTime = True
+    
+    for line in templateArray:
+        if not firstTime:
+            textfile.write(volcanoName)
+        firstTime = False
+        textfile.write(line)
+    
+    textfile.close()
+    
+
+#####################################################################################################################
+def colorRiversUp(matrix, size, rivers):
+    lakeRiverPixels = []
+
+    for x in range(size[0]):
+        for y in range(size[1]):
+            if matrix[x,y] == BIOM_RIVER and len(count3x3Neighbours (matrix, size, [x,y], BIOM_LAKE)) >=3:
+                    lakeRiverPixels.append([x,y])
+        
+            if matrix[x,y] == LANDMARK_RIVER_MERGE:
+                matrix[x,y] = BIOM_RIVER
+  
+    for lakeRiverPixel in lakeRiverPixels:
+        matrix[lakeRiverPixel[0], lakeRiverPixel[1]] = BIOM_LAKE
+    
+    for river in rivers:
+        for coord in river['coords']:
+            x = coord[0][0]
+            y = coord[0][1]
+
+            if coord[1] >=2:
+                if isInRange(size, [x, y+1]):
+                    if matrix[x, y+1] != BIOM_LAKE and matrix[x, y+1] != BIOM_OCEAN:
+                        matrix[x, y+1] = BIOM_RIVER
+                if isInRange(size, [x+1, y]):
+                    if matrix[x+1, y] != BIOM_LAKE and matrix[x+1, y] != BIOM_OCEAN:
+                        matrix[x+1, y] = BIOM_RIVER
+            if coord[1] >=4:
+                if isInRange(size, [x, y-1]):
+                    if matrix[x, y-1] != BIOM_LAKE and matrix[x, y-1] != BIOM_OCEAN:
+                        matrix[x, y-1] = BIOM_RIVER
+                if isInRange(size, [x-1, y]):
+                    if matrix[x-1, y] != BIOM_LAKE and matrix[x-1, y] != BIOM_OCEAN:
+                        matrix[x-1, y] = BIOM_RIVER
+            if coord[1] >= 5: 
+                if isInRange(size, [x+1, y+1]):
+                    if matrix[x+1, y+1] != BIOM_LAKE and matrix[x+1, y+1] != BIOM_OCEAN:
+                        matrix[x+1, y+1] = BIOM_RIVER
+                if isInRange(size, [x-1, y-1]):
+                    if matrix[x-1, y-1] != BIOM_LAKE and matrix[x-1, y-1] != BIOM_OCEAN:
+                        matrix[x-1, y-1] = BIOM_RIVER
+                if isInRange(size, [x+1, y-1]):
+                    if matrix[x+1, y-1] != BIOM_LAKE and matrix[x+1, y-1] != BIOM_OCEAN:
+                        matrix[x+1, y-1] = BIOM_RIVER
+                if isInRange(size, [x-1, y+1]):
+                    if matrix[x-1, y+1] != BIOM_LAKE and matrix[x-1, y+1] != BIOM_OCEAN:
+                        matrix[x-1, y+1] = BIOM_RIVER
+    return
+
 
 #####################################################################################################################
 def detectMountains(matrix, mountainPixels):
