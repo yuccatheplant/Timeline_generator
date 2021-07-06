@@ -173,7 +173,7 @@ def detectRivers(matrix, size, inputRivers):
                         
                         bigRiver['coords'].append(smallRiver['coords'][len(smallRiver['coords'])-1])
                         
-                        mergeInfo = [smallRiver['id'], smallRiver['name'], bigRiver['length']+1, bigRiver['mergePoints'][0]]
+                        mergeInfo = [smallRiver['id'], smallRiver['name'], (bigRiver['length']+1)//PIXELS_PER_KILOMETER, bigRiver['mergePoints'][0]]
                         if not 'mergeInfo' in bigRiver:
                             bigRiver['mergeInfo'] = [mergeInfo]
                         else:
@@ -262,6 +262,7 @@ def detectRivers(matrix, size, inputRivers):
     
     for river in rivers:
         river['length'] = river['length'] // PIXELS_PER_KILOMETER
+        print(river)
     
     colorRiversUp(matrix, size, rivers)
     
@@ -272,13 +273,34 @@ def detectRivers(matrix, size, inputRivers):
 #####################################################################################################################
 def generateRiversHTMLs(rivers):
     templateString = ''
+    HTMLnewLine= '<br>\n'
+
 
     with open(RESOURCES_HTML_LANDMARKS_DIR + '/landmark_river_template.html', 'r') as tempFile:
         templateString = tempFile.read()
 
     for river in rivers:
         with open(OUTPUT_HTML_LANDMARKS_RIVERS_DIR + '/RIVER'+ str(river['id']) +'.html', 'w') as writeFile:
+            #Length
             text = 'Length: ' + str(river['length'])+ 'km'
+            
+            #What flows into
+            if 'mergeInfo' in river:
+                text = text + HTMLnewLine
+                text = text + 'Inflowing streams:'+HTMLnewLine
+                text = text + '<ol>'
+                for inMerge in river['mergeInfo']:
+                    text = text + '<li><a href="RIVER'+ str(inMerge[0]) +'.html">'+str(inMerge[1])+'</a> at '+ str(inMerge[2]) +'th km</li>'
+                text = text + '</ol>\n'
+                
+            
+            #End of river
+            text = text+HTMLnewLine
+            text = text+'Flows into: '
+            if 'mergeInto' in river:
+                text = text+ '<a href="RIVER'+ str(river['mergeInto'][0]) +'.html">'+str(river['mergeInto'][1])+'</a>'
+            else:
+                text = text+ 'Ocean'
             
             data = [river, river['name'], river['name'], text]
         
