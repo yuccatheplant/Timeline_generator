@@ -99,7 +99,6 @@ def detectMergePoints(matrix, size, mergePoints):
 
 #####################################################################################################################
 def detectRivers(matrix, size, inputRivers):
-    print('DEBUG: START OF RIVERS')
     
     mergeCoords = []
     for x in range(size[0]):
@@ -256,13 +255,10 @@ def detectRivers(matrix, size, inputRivers):
     
     for river in rivers:
         river['length'] = river['length'] // PIXELS_PER_KILOMETER
-        print(river)
     
     colorRiversUp(matrix, size, rivers)
     
     generateRiversHTMLs(rivers)
-    
-    print('DEBUG: END OF RIVERS')
 
 #####################################################################################################################
 def generateRiversHTMLs(rivers):
@@ -399,9 +395,7 @@ def detectMountains(matrix, mountainPixels):
             jumpOut=True
             
             for coords in mountainPixels:
-                #print(coords)
                 if ((matrix[coords[0]-1, coords[1]] == color) or (matrix[coords[0]+1, coords[1]] == color) or (matrix[coords[0], coords[1]-1] == color) or (matrix[coords[0], coords[1]+1] == color)):
-                    #print('test')
                     mountains[mountainsLen-1].append(coords)
                     matrix[coords[0], coords[1]] = color
                     mountainPixels.remove(coords)
@@ -417,7 +411,6 @@ def detectMountains(matrix, mountainPixels):
         
         if len(mountainPixels) == 0:
             break
-    #print (mountains)   
     return mountains
     
 def coordsDistancePerpendicular(coord1, coord2):
