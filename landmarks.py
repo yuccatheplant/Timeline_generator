@@ -444,59 +444,59 @@ def generate_landmarks(inputMatrix, image_path, chances):
                 break;
         volcanoPos.append(y)  
     
-    image = Image.open(image_path)
-    matrix = image.load()
-    
-    textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'w')
-    textfile.write('#NATURAL LANDMARKS#')
-    
-    mountainPixels = []
-    volcanoCoords = []
-    rivers = []
-    
-    count_mountain_pixels = 0
-    
-    count_rivers=0
-    count_volcanoes=0
-    for x in range(len(inputMatrix)):
-        for y in range(len(inputMatrix[x])):
-            if inputMatrix[x][y] == BIOM_RIVER:
-                count_river_blocks = 0
-                count_other_water_blocks = 0
-                for rx in range(x-1, x+2):
-                    for ry in range(y-1, y+2):
-                        if (inputMatrix[rx][ry] == BIOM_OCEAN or inputMatrix[rx][ry] == BIOM_LAKE):
-                            count_other_water_blocks=count_other_water_blocks+1
-                        if (inputMatrix[rx][ry] == BIOM_RIVER):
-                            count_river_blocks = count_river_blocks+1
-                if count_river_blocks == 2 and count_other_water_blocks == 0:
-                    count_rivers = count_rivers+1
-                    textfile.write('\nRIVER'+str(count_rivers)+'['+str(x)+';'+str(y)+']')   
-                    rivers.append([x,y])
-            if inputMatrix[x][y] == BIOM_MOUNTAIN: 
-                mountainPixels.append([x,y])
-                if count_mountain_pixels in volcanoPos:
-                    count_volcanoes = count_volcanoes+1
-                    textfile.write('\nVOLCANO'+str(count_volcanoes)+'['+str(x)+';'+str(y)+']')
-                    volcanoCoords.append([x, y])
-                count_mountain_pixels=count_mountain_pixels+1
-    width, height = image.size
-    
-    mountains = detectMountains(matrix, mountainPixels)
-    detectRivers(matrix, [width, height], rivers)
-    
-    textfile.write('\n#'+str(mountains))
-    
-    for coords in volcanoCoords:
-        coords = getVolcanoRect(coords[0],coords[1])
-        for i in range(coords[0][0], coords[1][0]+1):
-            for j in range(coords[0][1], coords[1][1]+1):
-                matrix[i,j] = LANDMARK_VOLCANO
-    
-    
-    textfile.close()
-    
-    image.save(image_path)
-    image.close()
-    
+    with Image.open(image_path) as image:
+         
+        matrix = image.load()
+        
+        textfile = open(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT, 'w')
+        textfile.write('#NATURAL LANDMARKS#')
+        
+        mountainPixels = []
+        volcanoCoords = []
+        rivers = []
+        
+        count_mountain_pixels = 0
+        
+        count_rivers=0
+        count_volcanoes=0
+        for x in range(len(inputMatrix)):
+            for y in range(len(inputMatrix[x])):
+                if inputMatrix[x][y] == BIOM_RIVER:
+                    count_river_blocks = 0
+                    count_other_water_blocks = 0
+                    for rx in range(x-1, x+2):
+                        for ry in range(y-1, y+2):
+                            if (inputMatrix[rx][ry] == BIOM_OCEAN or inputMatrix[rx][ry] == BIOM_LAKE):
+                                count_other_water_blocks=count_other_water_blocks+1
+                            if (inputMatrix[rx][ry] == BIOM_RIVER):
+                                count_river_blocks = count_river_blocks+1
+                    if count_river_blocks == 2 and count_other_water_blocks == 0:
+                        count_rivers = count_rivers+1
+                        textfile.write('\nRIVER'+str(count_rivers)+'['+str(x)+';'+str(y)+']')   
+                        rivers.append([x,y])
+                if inputMatrix[x][y] == BIOM_MOUNTAIN: 
+                    mountainPixels.append([x,y])
+                    if count_mountain_pixels in volcanoPos:
+                        count_volcanoes = count_volcanoes+1
+                        textfile.write('\nVOLCANO'+str(count_volcanoes)+'['+str(x)+';'+str(y)+']')
+                        volcanoCoords.append([x, y])
+                    count_mountain_pixels=count_mountain_pixels+1
+        width, height = image.size
+        
+        mountains = detectMountains(matrix, mountainPixels)
+        detectRivers(matrix, [width, height], rivers)
+        
+        textfile.write('\n#'+str(mountains))
+        
+        for coords in volcanoCoords:
+            coords = getVolcanoRect(coords[0],coords[1])
+            for i in range(coords[0][0], coords[1][0]+1):
+                for j in range(coords[0][1], coords[1][1]+1):
+                    matrix[i,j] = LANDMARK_VOLCANO
+        
+        
+        textfile.close()
+        
+        image.save(image_path)
+        
     generateLandmarkHTMLs(OUTPUT_DIR+'/'+TEXTS_DIR+'/'+LANDMARK_FILE_NAME+TEXTFILE_FORMAT)

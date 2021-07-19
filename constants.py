@@ -1,3 +1,5 @@
+from pictures import *
+
 ###CONSTANTS
 #RATIO
 PIXELS_PER_KILOMETER = 5
