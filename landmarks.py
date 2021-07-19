@@ -257,6 +257,16 @@ def detectRivers(matrix, size, inputRivers):
         river['length'] = river['length'] // PIXELS_PER_KILOMETER
     
     colorRiversUp(matrix, size, rivers)
+    for imagePath in [
+    OUTPUT_MAPS_DIR + '/clean_map.png',
+    OUTPUT_MAPS_DIR + '/biomes.png',
+    OUTPUT_MAPS_DIR + '/heightmap.png'
+    ]:
+        with Image.open(imagePath) as cleanImage:
+            cleanMatrix = cleanImage.load()
+            colorRiversUp(cleanMatrix, size, rivers)
+            cleanImage.save(imagePath)
+    
     
     generateRiversHTMLs(rivers)
 
