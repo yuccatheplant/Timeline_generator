@@ -81,6 +81,7 @@ try:
 except FileNotFoundError:
     print ('Skipping cleaning')
 except:
+    print('One or more files are opened and could not be removed!')
     sys.exit()
 
 #Create result directory

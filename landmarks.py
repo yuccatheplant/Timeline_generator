@@ -100,7 +100,6 @@ def detectMergePoints(matrix, size, mergePoints):
 #####################################################################################################################
 def detectRivers(matrix, size, inputRivers):
     print('DEBUG: START OF RIVERS')
-    #print(inputRivers)
     
     mergeCoords = []
     for x in range(size[0]):
@@ -124,15 +123,10 @@ def detectRivers(matrix, size, inputRivers):
             "length": 1
             }
         rivers.append(river)
-        
-    controlCounter = 0
-    
+            
     
     firstRun = True
     while True:
-        controlCounter = controlCounter + 1
-        if controlCounter > 20:
-            break
         
         shouldStop = True
         for river in rivers:
